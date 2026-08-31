@@ -7,21 +7,16 @@ This project is a lightweight terminal-style shell inspired by Unix command line
 ## Features
 
 - Interactive command prompt
-- Basic command parsing
-- Runs external commands
+- Builtin commands: `echo`, `type`, `exit`, `pwd`, `cd`
+- Directory navigation (absolute, relative, and home `~` paths)
+- Runs external commands in the correct working directory
 - Built for Java-based shell experimentation
 
 ## Run the project
 
 ```bash
-mvn run
-```
-
-Or compile and run the main class:
-
-```bash
-mvn compile
-java -cp target/classes Main
+javac src/main/java/*.java
+java -cp src/main/java Main
 ```
 
 ## Project structure
@@ -31,6 +26,7 @@ src/
   main/
     java/
       Main.java
+      Navigation.java
 ```
 
 ## Purpose
