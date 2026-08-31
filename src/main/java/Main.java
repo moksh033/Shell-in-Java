@@ -1,4 +1,5 @@
 import java.io.File;
+import shell.Navigation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -30,7 +31,7 @@ public class Main {
     public static void main(String[] args) throws Exception {
         Scanner scanner = new Scanner(System.in);
         //hash set better than a normal set runs over O(1)
-        Set<String> builtins = new HashSet<>(Arrays.asList("echo", "exit", "type"));
+        Set<String> builtins = new HashSet<>(Arrays.asList("echo", "exit", "type", "pwd", "cd"));
 
         while (true) {
             System.out.print("$ ");
@@ -42,6 +43,11 @@ public class Main {
 
             if (input.equals("exit")) {
                 break;
+            } else if (cmd.equals("pwd")) {
+                Navigation.pwd();
+            } else if (cmd.equals("cd")) {
+                String target = cmdArgs.length > 0 ? cmdArgs[0] : null;
+                Navigation.cd(target);
             } else if (input.startsWith("echo ")) {
                 System.out.println(input.substring(5));
             } else if (input.startsWith("type ")) {
@@ -67,7 +73,7 @@ public class Main {
             try {
             ProcessBuilder pb = new ProcessBuilder(commandList);
         
-            pb.directory(new File(path).getParentFile());
+            pb.directory(new File(Navigation.getCurrentDir()));
             pb.inheritIO(); 
             Process process = pb.start();
             process.waitFor(); 
