@@ -10,7 +10,7 @@ public class Navigation {
     public static void pwd() { System.out.println(currentDir); }
 
     public static void cd(String target) {
-        // no argument, empty, or ~ means "take me home"
+        // no argument, empty, or ~ means to go back to the home directory 
         if (target == null || target.isEmpty() || target.equals("~")) {
             updateDir(System.getProperty("user.home"));
             return;
