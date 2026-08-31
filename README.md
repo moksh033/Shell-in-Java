@@ -10,6 +10,11 @@ This project is a lightweight terminal-style shell inspired by Unix command line
 - Builtin commands: `echo`, `type`, `exit`, `pwd`, `cd`
 - Directory navigation (absolute, relative, and home `~` paths)
 - Runs external commands in the correct working directory
+- **Output redirection** — redirect stdout/stderr to files
+  - `>` / `1>` — redirect stdout to a file (overwrites)
+  - `2>` — redirect stderr to a file (overwrites)
+  - `>>` / `1>>` — append stdout to a file
+  - `2>>` — append stderr to a file
 - Built for Java-based shell experimentation
 
 ## Run the project
@@ -19,14 +24,24 @@ javac src/main/java/*.java
 java -cp src/main/java Main
 ```
 
+## Redirection examples
+
+```bash
+$ echo hello > output.txt        # writes "hello" to output.txt
+$ echo first >> output.txt       # appends "first" to output.txt
+$ cat nonexistent 2> errors.txt  # sends error message to errors.txt
+$ cat missing 2>> errors.txt     # appends error to errors.txt
+```
+
 ## Project structure
 
 ```text
 src/
   main/
     java/
-      Main.java
-      Navigation.java
+      Main.java         — REPL loop, command parsing, and dispatch
+      Navigation.java   — cd/pwd and working directory tracking
+      Redirection.java  — parses and applies >, 1>, 2>, >>, 1>>, 2>>
 ```
 
 ## Purpose

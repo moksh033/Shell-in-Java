@@ -1,5 +1,5 @@
 import java.io.File;
-import shell.Navigation;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -8,88 +8,79 @@ import java.util.Scanner;
 import java.util.Set;
 
 public class Main {
+    static Set<String> builtins = new HashSet<>(Arrays.asList("echo", "exit", "type", "pwd", "cd"));
 
-    //helper function which splits path into a string array
-    public static String[] getPathFolders() {
+    static String findCommand(String cmd) {
         String pathEnv = System.getenv("PATH");
-        return pathEnv.split(File.pathSeparator);
-    }
-    //diff between these two functions is - above one is only giving array of folders and below one is returning file path
-    //function which gives back the path for that specific command 
-    public static String findCommandPath(String cmd) {
-        String[] paths = getPathFolders();
-        //dir is going over each path and checking if its executable and if it exists
-        for (String dir : paths) {
+        if (pathEnv == null) return null;
+        for (String dir : pathEnv.split(File.pathSeparator)) {
             File file = new File(dir, cmd);
             if (file.exists() && file.canExecute()) {
                 return file.getAbsolutePath();
             }
         }
-        return null; 
+        return null;
     }
 
     public static void main(String[] args) throws Exception {
         Scanner scanner = new Scanner(System.in);
-        //hash set better than a normal set runs over O(1)
-        Set<String> builtins = new HashSet<>(Arrays.asList("echo", "exit", "type", "pwd", "cd"));
 
         while (true) {
             System.out.print("$ ");
-            String input = scanner.nextLine();
-            //splitting the input user command into tokens , so we know token[0] is a the name followed by all others which are arguments
-            String[] tokens = input.split("\\s+");
+            if (!scanner.hasNextLine()) break;
+            String line = scanner.nextLine().trim();
+            if (line.isEmpty()) continue;
+
+            Redirection redir = Redirection.parse(line.split("\\s+"));
+            String[] tokens = redir.args;
+            if (tokens.length == 0) continue;
+
             String cmd = tokens[0];
             String[] cmdArgs = Arrays.copyOfRange(tokens, 1, tokens.length);
 
-            if (input.equals("exit")) {
+            if (cmd.equals("exit")) {
                 break;
             } else if (cmd.equals("pwd")) {
-                Navigation.pwd();
+                PrintStream out = redir.getOut();
+                out.println(Navigation.getCurrentDir());
+                if (out != System.out) out.close();
             } else if (cmd.equals("cd")) {
-                String target = cmdArgs.length > 0 ? cmdArgs[0] : null;
-                Navigation.cd(target);
-            } else if (input.startsWith("echo ")) {
-                System.out.println(input.substring(5));
-            } else if (input.startsWith("type ")) {
-                    cmd = input.substring(5);
-
-                if (builtins.contains(cmd)) {
-                    System.out.println(cmd + " is a shell builtin");
+                Navigation.cd(cmdArgs.length > 0 ? cmdArgs[0] : null);
+            } else if (cmd.equals("echo")) {
+                PrintStream out = redir.getOut();
+                out.println(String.join(" ", cmdArgs));
+                if (out != System.out) out.close();
+            } else if (cmd.equals("type")) {
+                String target = cmdArgs.length > 0 ? cmdArgs[0] : "";
+                PrintStream out = redir.getOut();
+                if (builtins.contains(target)) {
+                    out.println(target + " is a shell builtin");
                 } else {
-                    String path = findCommandPath(cmd);
-                    if (path != null) {
-                        System.out.println(cmd + " is " + path);
-                    } else {
-                        System.out.println(cmd + ": not found");
-                    }
+                    String path = findCommand(target);
+                    out.println(path != null ? target + " is " + path : target + ": not found");
                 }
+                if (out != System.out) out.close();
             } else {
-            String path = findCommandPath(cmd);
-            if (path != null) {
-            List<String> commandList = new ArrayList<>();
-            commandList.add(cmd); 
-            commandList.addAll(Arrays.asList(cmdArgs));
-
-            try {
-            ProcessBuilder pb = new ProcessBuilder(commandList);
-        
-            pb.directory(new File(Navigation.getCurrentDir()));
-            pb.inheritIO(); 
-            Process process = pb.start();
-            process.waitFor(); 
-            }       
-            catch (Exception e) {
-            System.out.println("Error running command: " + e.getMessage());
+                String path = findCommand(cmd);
+                if (path != null) {
+                    List<String> command = new ArrayList<>();
+                    command.add(cmd);
+                    command.addAll(Arrays.asList(cmdArgs));
+                    try {
+                        ProcessBuilder pb = new ProcessBuilder(command);
+                        pb.directory(Navigation.currentDir);
+                        redir.apply(pb);
+                        pb.start().waitFor();
+                    } catch (Exception e) {
+                        System.out.println("Error running command: " + e.getMessage());
+                    }
+                } else {
+                    PrintStream err = redir.getErr();
+                    err.println(cmd + ": command not found");
+                    if (err != System.err) err.close();
+                }
             }
-}           else {
-             System.out.println(cmd + ": command not found");
-}
-
-            }
-
-        
         }
-
         scanner.close();
     }
 }
